@@ -95,11 +95,11 @@ These options are not needed if gatk4 is used
 ## Usage
 To run the pipeline on a series of matched tumor normal files (with suffixes *_T* and *_N*) in folders *tumor_BAM* *normal_BAM*, a reference genome with indexes *ref*, and a bed file ref.bed, one can type:
 ```bash
-nextflow run IARCbioinfo/mutect-nf -r v2.0 -profile singularity  --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --ref ref_genome.fa --gtf ref.gtf 
+nextflow run IARCbioinfo/mutect-nf -r v2.1 -profile singularity  --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --ref ref_genome.fa --gtf ref.gtf 
 ``` 
-To run the pipeline without singularity just remove "-profile singularity".
+To run the pipeline without singularity just remove "-profile singularity". Alternatively, one can run the pipeline using a docker container (-profile docker) the conda receipe containing all required dependencies (-profile conda). Note that we provide similar support when using gatk3 (profiles conda_gatk3, singularity_gatk3, and docker_gatk3) or gatk2 (profiles conda_gatk2, singularity_gatk2, and docker_gatk2).
 
-To use gatk3, set `--gatk_version 3`and provide option `--mutect2_jar` for mutect version 2 (GATK executable jar, which integrate mutect2), and `--mutect_jar` for mutect version 1.
+To use gatk3, set `--gatk_version 3`and provide option `--mutect2_jar` for mutect version 2 (GATK executable jar, which integrate mutect2) and possibly specify `-profile singularity_gatk3`, and set `--mutect_jar` for mutect version 1 and possibly specify `-profile singularity_gatk2`.
 
 #### Help section
 You can print the help manual by providing `--help` in the execution command line:
