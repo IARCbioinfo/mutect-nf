@@ -8,9 +8,9 @@ LABEL version="4.7.12"
 LABEL software="mutect-nf"
 LABEL software.version="2.1"
 LABEL about.summary="Container image containing all requirements for mutect-nf"
-LABEL about.home="http://github.com/nalcala/mutect-nf"
-LABEL about.documentation="http://github.com/nalcala/mutect-nf/README.md"
-LABEL about.license_file="http://github.com/nalcala/mutect-nf/LICENSE.txt"
+LABEL about.home="http://github.com/IARCbioinfo/mutect-nf"
+LABEL about.documentation="http://github.com/IARCbioinfo/mutect-nf/README.md"
+LABEL about.license_file="http://github.com/IARCbioinfo/mutect-nf/LICENSE.txt"
 LABEL about.license="GNU-3.0"
 
 ################## MAINTAINER ######################
