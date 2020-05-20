@@ -1,8 +1,8 @@
 #!/bin/bash
 cd ~/mutect-nf/
-git config --global user.email "robitaillea@students.iarc.fr"
-git add dag.png
-git add dag.html
+git config --global user.email "alcalan@iarc.fr"
+git config --global user.name "Circle CI_$CIRCLE_PROJECT_REPONAME_$CIRCLE_BRANCH"
+git add .
 git commit -m "Generated DAG [skip ci]"
 git push origin $CIRCLE_BRANCH
 
