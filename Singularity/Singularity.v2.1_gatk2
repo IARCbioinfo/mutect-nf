@@ -1,4 +1,4 @@
-From:nalcala/mutect-nf:v2.1_gatk2
+From:iarcbioinfo/mutect-nf:v2.1_gatk2
 Bootstrap:docker
 
 %labels
