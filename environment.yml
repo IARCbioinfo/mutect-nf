@@ -1,0 +1,11 @@
+name: mutect2
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - gatk4=4.1.7.0
+  - pysam=0.15.2
+  - bedops=2.4.37
+  - bedtools=2.29.2
+  - r-base=4.0.0

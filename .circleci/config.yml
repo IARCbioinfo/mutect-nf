@@ -1,0 +1,45 @@
+version: 2.1
+jobs:
+        build:
+                machine: true
+                steps:
+                        - checkout
+                        - run: cd ~ ; wget -qO- get.nextflow.io | bash ; chmod 755 nextflow ; sudo ln -s ~/nextflow /usr/local/bin/ ; sudo apt-get install graphviz
+                        - run: cd ~ && git clone https://github.com/iarcbioinfo/data_test.git
+                        - run: echo " docker.runOptions = '-u $(id -u):$(id -g)' " > ~/.nextflow/config
+                        - run: cd ~/project/ ; docker build -t nalcala/mutect-nf .
+                        - run: cd ~/project/ ; docker build -t nalcala/mutect-nf_gatk3 -f Dockerfile_gatk3 .
+                        - run: cd ~/project/ ; docker build -t nalcala/mutect-nf_gatk2 -f Dockerfile_gatk2 .
+                        - run: cd ; nextflow run ~/project/mutect.nf --help
+                        - run: cd ; wget https://github.com/broadinstitute/mutect/releases/download/1.1.5/muTect-1.1.5-bin.zip; unzip muTect-1.1.5-bin.zip && docker run -v ${PWD}:/test nalcala/mutect-nf_gatk2 java -jar test/muTect-1.1.5.jar --help
+                        - run: cd ; wget https://storage.googleapis.com/gatk-software/package-archive/gatk/GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2; tar -jxf GenomeAnalysisTK-3.8-1-0-gf15c1c3ef.tar.bz2; mv GenomeAnalysisTK-3.8-1-0-gf15c1c3ef/GenomeAnalysisTK.jar .
+                        - run: cd ; docker run -v ${PWD}:/test nalcala/mutect-nf_gatk3 java -jar test/GenomeAnalysisTK.jar --help
+                        #basic test
+                        - run: cd ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_results -with-dag dag.html
+                        - run: cd ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf_gatk3 --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --mutect2_jar ~/GenomeAnalysisTK.jar --gatk_version 3 --nsplit 2 --cpu 2 --mem 7  --output_folder mutect2gatk3_results
+                        - run: cd ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf_gatk2 --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --mutect_jar ~/muTect-1.1.5.jar --gatk_version 2 --nsplit 2 --cpu 2 --mem 7 --output_folder mutect1_results
+                        #test suffixes
+                        - run: cd ~/data_test/BAM/test/ ; ln -s NA06984_N.bam NA06984_tissue.bam; ln -s NA06984_N.bam.bai NA06984_tissue.bam.bai; ln -s NA06984_T.bam NA06984_dis.bam; ln -s NA06984_T.bam.bai NA06984_dis.bam.bai
+                        - run: cd ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_suffixes_results --suffix_tumor "_dis" --suffix_normal "_tissue"
+                        #test region
+                        - run: cd ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_regions_results --region "17:7573000-7590000"
+                        #test tn_file input
+                        - run: cd ; echo -e 'sample\ttumor\tnormal\nNA06984\tdata_test/BAM/test/NA06984_T.bam\tdata_test/BAM/test/NA06984_N.bam' > input.tsv ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf --tn_file input.tsv --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_inputfile_results
+                        #test genotype mode
+                        - run: cd ; echo -e 'sample\ttumor\tnormal\tvcf\nNA06984\tdata_test/BAM/test/NA06984_T.bam\tdata_test/BAM/test/NA06984_N.bam\tmutect2_results/NA06984_filtered_PASS.vcf.gz' > input_genotype.tsv ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf --tn_file input_genotype.tsv --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_inputfile_genotype_results --genotype
+                        #test genotype with RNAseq and RNAseq_preproc
+                        - run: cd ; echo -e 'sample\ttumor\tnormal\tvcf\tpreproc\nNA06984\tdata_test/BAM/test/NA06984_T.bam\tdata_test/BAM/test/NA06984_N.bam\tmutect2_results/NA06984_filtered_PASS.vcf.gz\tno\nNA06984\tdata_test/BAM/test/NA06984_dis.bam\tnone\tmutect2_results/NA06984_filtered_PASS.vcf.gz\tyes'  > input_genotype_preproc.tsv; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf --tn_file input_genotype_preproc.tsv --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_inputfile_genotype_preproc_results --genotype --ref_RNA ~/data_test/REF/17.fasta
+                        #test gatk4 vcf parameters: known_snp (dbsnp), PON, estimate contamination, snp_contam
+                        - run: cd ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf --estimate_contamination --snp_contam ~/data_test/REF/small_exac_common_3_17.hg19.vcf.gz --known_snp ~/data_test/REF/dbsnp_138.17_7572000-7591000_nochr.vcf.gz --PON ~/data_test/REF/1000g_pon_17.hg19.vcf.gz --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_vcf_results -with-dag dag_vcfs.html
+                        #test gatk3 vcf parameters: known_snp (dbsnp)
+                        - run: cd ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf_gatk3 --known_snp ~/data_test/REF/dbsnp_138.17_7572000-7591000_nochr.vcf.gz --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --mutect2_jar ~/GenomeAnalysisTK.jar --gatk_version 3 --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_vcf_gatk3_results -with-dag dag_vcfs_gatk3.html
+                        #test gatk2 vcf parameters: known_snp (dbsnp)
+                        - run: cd ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf_gatk2 --known_snp ~/data_test/REF/dbsnp_138.17_7572000-7591000_nochr.vcf.gz --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --mutect_jar ~/muTect-1.1.5.jar --gatk_version 2 --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_vcf_gatk2_results -with-dag dag_vcfs_gatk2.html
+                        #test cosmic VCF
+                        - run: cd ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf_gatk3 --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --mutect2_jar ~/GenomeAnalysisTK.jar --gatk_version 3 --nsplit 2 --cpu 2 --mem 7  --output_folder mutect2gatk3_cosmic_results --cosmic ~/data_test/REF/CosmicCodingMuts_17.vcf
+                        - run: cd ; nextflow run ~/project/mutect.nf -with-docker nalcala/mutect-nf_gatk2 --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --mutect_jar ~/muTect-1.1.5.jar --gatk_version 2 --nsplit 2 --cpu 2 --mem 7 --output_folder mutect1_cosmic_results --cosmic ~/data_test/REF/CosmicCodingMuts_17.vcf
+                        #move dag
+                        - run: cd ; cp ~/dag* ~/project/.
+                        - deploy:
+                                branch: [master, dev]
+                                command: chmod +x deploy.sh && ./deploy.sh
