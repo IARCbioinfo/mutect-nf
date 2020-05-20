@@ -1,8 +1,8 @@
 # mutect-nf
 ## Mutect pipeline for somatic variant calling with Nextflow
-[![CircleCI](https://circleci.com/gh/IARCbioinfo/RNAseq-nf/tree/master.svg?style=svg)](https://circleci.com/gh/nalcala/mutect-nf/tree/master)
-[![Docker Hub](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/r/nalcala/mutect-nf/)
-[![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/4333)
+[![CircleCI](https://circleci.com/gh/IARCbioinfo/mutect-nf/tree/master.svg?style=svg)](https://circleci.com/gh/IARCbioinfo/mutect-nf/tree/master)
+[![Docker Hub](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/r/iarcbioinfo/mutect-nf/)
+[![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/4357)
 
 ![workflow](mutectseqpipeline.png?raw=true "Scheme of calling Workflow")
 
@@ -95,7 +95,7 @@ These options are not needed if gatk4 is used
 ## Usage
 To run the pipeline on a series of matched tumor normal files (with suffixes *_T* and *_N*) in folders *tumor_BAM* *normal_BAM*, a reference genome with indexes *ref*, and a bed file ref.bed, one can type:
 ```bash
-nextflow run nalcala/mutect-nf -r v2.0 -profile singularity  --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --ref ref_genome.fa --gtf ref.gtf 
+nextflow run IARCbioinfo/mutect-nf -r v2.0 -profile singularity  --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --ref ref_genome.fa --gtf ref.gtf 
 ``` 
 To run the pipeline without singularity just remove "-profile singularity".
 
