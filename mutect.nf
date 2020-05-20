@@ -36,6 +36,7 @@ params.tumor_bam_folder  = null
 params.normal_bam_folder = null
 params.PON           = null
 params.estimate_contamination = null
+params.filter_readorientation = null
 params.genotype      = null
 params.ref_RNA       = "NO_REF_RNA_FILE"
 
@@ -98,6 +99,7 @@ log.info '-------------------------------------------------------------'
     log.info ''
     log.info 'Flags:'
     log.info '    --estimate_contamination 	                   Run extra step of estimating contamination and use results to filter calls; only for gatk4'
+    log.info '    --filter_readorientation                     Run extra step learning read orientation model and using it to filter reads.'
     log.info '    --genotype                                   Use genotyping from vcf mode instead of usual variant calling;'
     log.info '                                                 requires tn_file with vcf column and gatk4, and if RNA-seq included, requires preproc column'
     log.info ''
@@ -125,6 +127,7 @@ log.info '-------------------------------------------------------------'
     log.info "normal_bam_folder      = ${params.normal_bam_folder}"
     log.info "PON                    = ${params.PON}"
     log.info "estimate_contamination = ${params.estimate_contamination}"
+    log.info "filter_readorientation = ${params.filter_readorientation}"
     log.info "genotype               = ${params.genotype}"
     log.info "ref                    = ${params.ref}"
     log.info "ref_RNA                = ${params.ref_RNA}"
@@ -561,23 +564,29 @@ process mergeMuTectOutputs {
 }
 
 if(params.gatk_version=="4"){
-	/*println("Filtering output")
+    if(params.filter_readorientation){
+	//println("Filtering output")
 	process ReadOrientationLearn {
             tag { tumor_normal_tag }
 
             publishDir params.output_folder+'/stats', mode: 'copy'
 
             input:
-            set val(tumor_normal_tag), file(f1r2) from f1r2.groupTuple(
+            set val(tumor_normal_tag), file(f1r2_files) from f1r2.groupTuple()
 
             output:
             set val(tumor_normal_tag), file("*model.tar.gz") into ROmodel
 
             shell:
+            input_f1r2=""
+            for( fir2 in f1r2_files ){
+                input_f1r2=input_f1r2+" -I ${f1r2}"
+            }
             '''
-            gatk LearnReadOrientationModel -I !{f1r2} -O !{tumor_normal_tag}_read-orientation-model.tar.gz
+            gatk LearnReadOrientationModel !{input_f1r2} -O !{tumor_normal_tag}_read-orientation-model.tar.gz
             '''
-        }*/
+        }
+    }
 
 if(params.estimate_contamination){
 	process ContaminationEstimationPileup {
