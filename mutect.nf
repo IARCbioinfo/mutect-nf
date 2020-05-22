@@ -516,8 +516,11 @@ process mergeMuTectOutputs {
 
     tag { tumor_normal_tag }
 
-    publishDir params.output_folder+'/intermediate_calls/raw_calls/', mode: 'copy'
-
+    publishDir params.output_folder, mode: 'copy', saveAs: {filename ->
+                 if (filename.indexOf(".stats") > 0)   "stats/$filename"
+            else if (filename.indexOf(".vcf") > 0)     "intermediate_calls/raw_calls/$filename"
+    }
+    
     input:
     set val(tumor_normal_tag), file(vcf_files) from mutect_output1.groupTuple(size: beds_length)
     set val(tumor_normal_tag2), file(txt_files) from mutect_output2.groupTuple(size: beds_length)
