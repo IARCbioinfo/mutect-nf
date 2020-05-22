@@ -453,8 +453,7 @@ process mutect {
     tag { printed_tag }
 
     input:
-    set val(sample), file(bamT), file(baiT), file(bamN), file(baiN)  from tn_bambai
-    each bed from split_bed1
+    set val(sample), file(bamT), file(baiT), file(bamN), file(baiN), file(bed)  from tn_bambai.combine(split_bed1)
     file fasta_ref
     file fasta_ref_fai
     file fasta_ref_dict
