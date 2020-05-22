@@ -689,7 +689,8 @@ process FilterMuTectOutputs {
 	for(model in ROmodel){
 		RO=RO+"--ob-priors ${model} "
 	}
-    }contam=""
+    }
+    contam=""
     if(params.estimate_contamination){
 	for(contmp in contam_tables){
 		contam=contam+"--contamination-table ${contmp} "
