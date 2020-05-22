@@ -44,7 +44,7 @@ params.help = null
 
 log.info "" 
 log.info "--------------------------------------------------------"
-log.info "  mutect-nf 2.1.0: Mutect pipeline for somatic variant calling with Nextflow "
+log.info "  mutect-nf 2.2.0: Mutect pipeline for somatic variant calling with Nextflow "
 log.info "--------------------------------------------------------"
 log.info "Copyright (C) IARC/WHO"
 log.info "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE"
@@ -586,6 +586,9 @@ if(params.gatk_version=="4"){
             gatk LearnReadOrientationModel !{input_f1r2} -O !{tumor_normal_tag}_read-orientation-model.tar.gz
             '''
         }
+        res_merged_RO = res_merged.join(ROmodel)
+    }else{
+        res_merged_RO = res_merged.map{row -> [row[0], row[1], row[2] , null]}
     }
 
 if(params.estimate_contamination){
@@ -660,16 +663,16 @@ if(params.estimate_contamination){
 	    gatk --java-options "-Xmx!{params.mem}G" CalculateContamination -I !{pileupT} !{input_n} -O !{basename}_calculatecontamination.table
 	    '''
 	}
-   res_merged_contam = res_merged.join(contam)
+   res_merged_RO_contam = res_merged_RO.join(contam)
 }else{
-   res_merged_contam = res_merged.map{row -> [row[0], row[1], row[2] , null]}
+   res_merged_RO_contam = res_merged_RO.map{row -> [row[0], row[1], row[2] , row[3], null]}
 }
 
 process FilterMuTectOutputs {
     tag { tumor_normal_tag }
 
     input:
-    set val(tumor_normal_tag), file(vcf), file(stats), file(contam_tables) from res_merged_contam
+    set val(tumor_normal_tag), file(vcf), file(stats), file(ROmodel), file(contam_tables) from res_merged_RO_contam
     file fasta_ref
     file fasta_ref_fai
     file fasta_ref_gzi
@@ -681,14 +684,19 @@ process FilterMuTectOutputs {
     publishDir params.output_folder+'/intermediate_calls/filtered', mode: 'copy'
 
     shell:
-    contam=""
+    RO=""
+    if(params.filter_readorientation){
+	for(model in ROmodel){
+		RO=RO+"--ob-priors ${model} "
+	}
+    }contam=""
     if(params.estimate_contamination){
 	for(contmp in contam_tables){
-		contam="--contamination-table ${contmp} "
+		contam=contam+"--contamination-table ${contmp} "
 	}
     }
     '''
-    gatk FilterMutectCalls -R !{fasta_ref} -V !{vcf} !{contam} -O !{tumor_normal_tag}_filtered.vcf
+    gatk FilterMutectCalls -R !{fasta_ref} -V !{vcf} !{contam} !{RO} -O !{tumor_normal_tag}_filtered.vcf
     '''
 }
 

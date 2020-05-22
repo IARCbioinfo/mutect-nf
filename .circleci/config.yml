@@ -23,6 +23,8 @@ jobs:
                         - run: cd ; nextflow run ~/project/mutect.nf -with-docker iarcbioinfo/mutect-nf --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_suffixes_results --suffix_tumor "_dis" --suffix_normal "_tissue"
                         #test region
                         - run: cd ; nextflow run ~/project/mutect.nf -with-docker iarcbioinfo/mutect-nf --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_regions_results --region "17:7573000-7590000"
+                        #test read orientation artefact filtering
+                        - run: cd ; nextflow run ~/project/mutect.nf -with-docker iarcbioinfo/mutect-nf --tumor_bam_folder ~/data_test/BAM/test/ --normal_bam_folder ~/data_test/BAM/test/ --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_results --filter_readorientation -with-dag dag.html
                         #test tn_file input
                         - run: cd ; echo -e 'sample\ttumor\tnormal\nNA06984\tdata_test/BAM/test/NA06984_T.bam\tdata_test/BAM/test/NA06984_N.bam' > input.tsv ; nextflow run ~/project/mutect.nf -with-docker iarcbioinfo/mutect-nf --tn_file input.tsv --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_inputfile_results
                         #test genotype mode
