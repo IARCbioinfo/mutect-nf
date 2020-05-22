@@ -579,7 +579,7 @@ if(params.gatk_version=="4"){
 
             shell:
             input_f1r2=""
-            for( fir2 in f1r2_files ){
+            for( f1r2 in f1r2_files ){
                 input_f1r2=input_f1r2+" -I ${f1r2}"
             }
             '''
