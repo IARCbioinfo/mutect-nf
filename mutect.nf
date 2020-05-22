@@ -440,7 +440,7 @@ process split_bed {
 
       shell:
       '''
-      grep -v '^track' !{bed} | sort -k1,1 -k2,2n | bedtools merge -i stdin | awk '{print $1" "$2" "$3}' | cut_into_small_beds.r !{params.nsplit}
+      grep -v '^track' !{bed} | sort -T $PWD -k1,1 -k2,2n | bedtools merge -i stdin | awk '{print $1" "$2" "$3}' | cut_into_small_beds.r !{params.nsplit}
       '''
 }
 
@@ -544,7 +544,7 @@ process mergeMuTectOutputs {
         sort_ops="-k1,1V"
     fi
     # Add all VCF contents and sort
-    grep --no-filename -v '^#' *.vcf | LC_ALL=C sort -t '	' $sort_ops -k2,2n >> header.txt
+    grep --no-filename -v '^#' *.vcf | LC_ALL=C sort -T $PWD -t '	' $sort_ops -k2,2n >> header.txt
     mv header.txt !{tumor_normal_tag}_calls.vcf
 
     # MERGE TXT FILES if mutect1
