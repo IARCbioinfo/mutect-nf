@@ -1,5 +1,5 @@
 #!/bin/bash
-cd ~/mutect-nf/
+cd ~/project/
 git config --global user.email "alcalan@iarc.fr"
 git config --global user.name "Circle CI_$CIRCLE_PROJECT_REPONAME_$CIRCLE_BRANCH"
 git add .
