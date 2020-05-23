@@ -45,6 +45,10 @@ jobs:
                         - run: cd ; nextflow run ~/project/mutect.nf -with-docker iarcbioinfo/mutect-nf --tn_file input.tsv  --filter_readorientation --estimate_contamination --snp_contam ~/data_test/REF/small_exac_common_3_17.hg19.vcf.gz --known_snp ~/data_test/REF/dbsnp_138.17_7572000-7591000_nochr.vcf.gz --PON ~/data_test/REF/1000g_pon_17.hg19.vcf.gz --bed ~/data_test/BED/TP53_exon2_11.bed --ref ~/data_test/REF/17.fasta --nsplit 2 --cpu 2 --mem 7 --output_folder mutect2_vcf_results -with-dag dag.png
                         #move dag
                         - run: cd ; cp ~/dag* ~/project/.
+                        - add_ssh_keys:
+                                fingerprints:
+                                        - "ef:27:96:19:ee:bd:af:19:26:1f:20:f7:f1:51:4c:2d"
                         - deploy:
                                 branch: [master, dev]
                                 command: chmod +x deploy.sh && ./deploy.sh
+      
