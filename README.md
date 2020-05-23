@@ -4,7 +4,7 @@
 [![Docker Hub](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/r/iarcbioinfo/mutect-nf/)
 [![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/4357)
 
-![workflow](mutectseqpipeline.png?raw=true "Scheme of calling Workflow")
+![workflow](mutectpipeline.png?raw=true "Scheme of calling Workflow")
 
 ## Description
 Nextflow pipeline for somatic variant calling with mutect with Mutect1 or 2, gatk3 or gatk4
