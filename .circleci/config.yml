@@ -47,7 +47,7 @@ jobs:
                         - run: cd ; cp ~/dag* ~/project/.
                         - add_ssh_keys:
                                 fingerprints:
-                                        - "ef:27:96:19:ee:bd:af:19:26:1f:20:f7:f1:51:4c:2d"
+                                        - "4d:e2:b2:31:5c:4d:ae:5d:af:d2:62:9a:01:a8:de:f1"
                         - deploy:
                                 branch: [master, dev]
                                 command: chmod +x deploy.sh && ./deploy.sh
