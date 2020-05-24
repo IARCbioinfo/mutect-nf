@@ -1,6 +1,6 @@
 #!/bin/bash
-for v in `ls *.vcf`; do cat $v | mergeBed > "$v.bed"; done
-for v in `ls *.vcf.gz`; do zcat $v | mergeBed > "$v.bed"; done
+for v in `ls *.vcf | grep -v -E "$1|$2"`; do cat $v | mergeBed > "$v.bed"; done
+for v in `ls *.vcf.gz | grep -v -E "$1|$2"`; do zcat $v | mergeBed > "$v.bed"; done
 beds=''
 for b in `ls *.bed`; do beds=$beds' '$b; done
 bedops -m $beds > regionsI.bed

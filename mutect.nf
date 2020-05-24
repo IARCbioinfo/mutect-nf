@@ -374,7 +374,7 @@ process genotype{
         PON_option = ""
     }
     '''
-    !{baseDir}/bin/prep_vcf_bed.sh
+    !{baseDir}/bin/prep_vcf_bed.sh !{known_snp} !{PON}
     normal_name=`samtools view -H !{bamN} | grep SM | head -1 | awk '{print $4}' | cut -c 4-`
     gatk IndexFeatureFile -I !{vcf}
     gatk Mutect2 --java-options "-Xmx!{params.mem}G" -R !{fasta_ref} !{known_snp_option} !{PON_option} !{input_t} !{input_n} \
