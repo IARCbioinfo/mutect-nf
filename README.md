@@ -91,6 +91,7 @@ These options are not needed if gatk4 is used
 |--help | print usage and optional parameters |
 |--estimate_contamination | run extra step of estimating contamination by normal and using the results to filter calls; only for gatk4|
 |--genotype | use genotyping from vcf mode instead of usual variant calling requires tn_file with vcf column and gatk4, and if RNA-seq included, requires preproc column |
+|--filter_readorientation | Run extra step learning read orientation model and using it to filter reads |
 
 ## Usage
 To run the pipeline on a series of matched tumor normal files (with suffixes *_T* and *_N*) in folders *tumor_BAM* *normal_BAM*, a reference genome with indexes *ref*, and a bed file ref.bed, one can type:
