@@ -4,7 +4,7 @@
 [![Docker Hub](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/r/iarcbioinfo/mutect-nf/)
 [![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/4357)
 
-![workflow](mutectseqpipeline.png?raw=true "Scheme of calling Workflow")
+![workflow](mutectpipeline.png?raw=true "Scheme of calling Workflow")
 
 ## Description
 Nextflow pipeline for somatic variant calling with mutect with Mutect1 or 2, gatk3 or gatk4
@@ -95,7 +95,7 @@ These options are not needed if gatk4 is used
 ## Usage
 To run the pipeline on a series of matched tumor normal files (with suffixes *_T* and *_N*) in folders *tumor_BAM* *normal_BAM*, a reference genome with indexes *ref*, and a bed file ref.bed, one can type:
 ```bash
-nextflow run IARCbioinfo/mutect-nf -r v2.1 -profile singularity  --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --ref ref_genome.fa --gtf ref.gtf 
+nextflow run IARCbioinfo/mutect-nf -r v2.2 -profile singularity  --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --ref ref_genome.fa --gtf ref.gtf 
 ``` 
 To run the pipeline without singularity just remove "-profile singularity". Alternatively, one can run the pipeline using a docker container (-profile docker) the conda receipe containing all required dependencies (-profile conda). Note that we provide similar support when using gatk3 (profiles conda_gatk3, singularity_gatk3, and docker_gatk3) or gatk2 (profiles conda_gatk2, singularity_gatk2, and docker_gatk2).
 

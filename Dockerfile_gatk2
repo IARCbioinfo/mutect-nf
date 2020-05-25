@@ -6,7 +6,7 @@ FROM continuumio/miniconda3:4.7.12
 LABEL base_image="continuumio/miniconda3"
 LABEL version="4.7.12"
 LABEL software="mutect-nf_gatk2"
-LABEL software.version="2.1"
+LABEL software.version="2.2"
 LABEL about.summary="Container image containing all requirements for mutect-nf with gatk2 (mutect1)"
 LABEL about.home="http://github.com/IARCbioinfo/mutect-nf"
 LABEL about.documentation="http://github.com/IARCbioinfo/mutect-nf/README.md"

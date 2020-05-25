@@ -36,6 +36,7 @@ params.tumor_bam_folder  = null
 params.normal_bam_folder = null
 params.PON           = null
 params.estimate_contamination = null
+params.filter_readorientation = null
 params.genotype      = null
 params.ref_RNA       = "NO_REF_RNA_FILE"
 
@@ -43,7 +44,7 @@ params.help = null
 
 log.info "" 
 log.info "--------------------------------------------------------"
-log.info "  mutect-nf 2.1.0: Mutect pipeline for somatic variant calling with Nextflow "
+log.info "  mutect-nf 2.2.0: Mutect pipeline for somatic variant calling with Nextflow "
 log.info "--------------------------------------------------------"
 log.info "Copyright (C) IARC/WHO"
 log.info "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE"
@@ -98,6 +99,7 @@ log.info '-------------------------------------------------------------'
     log.info ''
     log.info 'Flags:'
     log.info '    --estimate_contamination 	                   Run extra step of estimating contamination and use results to filter calls; only for gatk4'
+    log.info '    --filter_readorientation                     Run extra step learning read orientation model and using it to filter reads.'
     log.info '    --genotype                                   Use genotyping from vcf mode instead of usual variant calling;'
     log.info '                                                 requires tn_file with vcf column and gatk4, and if RNA-seq included, requires preproc column'
     log.info ''
@@ -125,6 +127,7 @@ log.info '-------------------------------------------------------------'
     log.info "normal_bam_folder      = ${params.normal_bam_folder}"
     log.info "PON                    = ${params.PON}"
     log.info "estimate_contamination = ${params.estimate_contamination}"
+    log.info "filter_readorientation = ${params.filter_readorientation}"
     log.info "genotype               = ${params.genotype}"
     log.info "ref                    = ${params.ref}"
     log.info "ref_RNA                = ${params.ref_RNA}"
@@ -371,7 +374,7 @@ process genotype{
         PON_option = ""
     }
     '''
-    !{baseDir}/bin/prep_vcf_bed.sh
+    !{baseDir}/bin/prep_vcf_bed.sh !{known_snp} !{PON}
     normal_name=`samtools view -H !{bamN} | grep SM | head -1 | awk '{print $4}' | cut -c 4-`
     gatk IndexFeatureFile -I !{vcf}
     gatk Mutect2 --java-options "-Xmx!{params.mem}G" -R !{fasta_ref} !{known_snp_option} !{PON_option} !{input_t} !{input_n} \
@@ -437,7 +440,7 @@ process split_bed {
 
       shell:
       '''
-      grep -v '^track' !{bed} | sort -k1,1 -k2,2n | bedtools merge -i stdin | awk '{print $1" "$2" "$3}' | cut_into_small_beds.r !{params.nsplit}
+      grep -v '^track' !{bed} | sort -T $PWD -k1,1 -k2,2n | bedtools merge -i stdin | awk '{print $1" "$2" "$3}' | cut_into_small_beds.r !{params.nsplit}
       '''
 }
 
@@ -450,8 +453,7 @@ process mutect {
     tag { printed_tag }
 
     input:
-    set val(sample), file(bamT), file(baiT), file(bamN), file(baiN)  from tn_bambai
-    each bed from split_bed1
+    set val(sample), file(bamT), file(baiT), file(bamN), file(baiN), file(bed)  from tn_bambai.combine(split_bed1)
     file fasta_ref
     file fasta_ref_fai
     file fasta_ref_dict
@@ -513,8 +515,11 @@ process mergeMuTectOutputs {
 
     tag { tumor_normal_tag }
 
-    publishDir params.output_folder+'/intermediate_calls/raw_calls/', mode: 'copy'
-
+    publishDir params.output_folder, mode: 'copy', saveAs: {filename ->
+                 if (filename.indexOf(".stats") > 0)   "stats/$filename"
+            else if (filename.indexOf(".vcf") > 0)     "intermediate_calls/raw_calls/$filename"
+    }
+    
     input:
     set val(tumor_normal_tag), file(vcf_files) from mutect_output1.groupTuple(size: beds_length)
     set val(tumor_normal_tag2), file(txt_files) from mutect_output2.groupTuple(size: beds_length)
@@ -539,7 +544,7 @@ process mergeMuTectOutputs {
         sort_ops="-k1,1V"
     fi
     # Add all VCF contents and sort
-    grep --no-filename -v '^#' *.vcf | LC_ALL=C sort -t '	' $sort_ops -k2,2n >> header.txt
+    grep --no-filename -v '^#' *.vcf | LC_ALL=C sort -T $PWD -t '	' $sort_ops -k2,2n >> header.txt
     mv header.txt !{tumor_normal_tag}_calls.vcf
 
     # MERGE TXT FILES if mutect1
@@ -561,23 +566,32 @@ process mergeMuTectOutputs {
 }
 
 if(params.gatk_version=="4"){
-	/*println("Filtering output")
+    if(params.filter_readorientation){
+	//println("Filtering output")
 	process ReadOrientationLearn {
             tag { tumor_normal_tag }
 
             publishDir params.output_folder+'/stats', mode: 'copy'
 
             input:
-            set val(tumor_normal_tag), file(f1r2) from f1r2.groupTuple(
+            set val(tumor_normal_tag), file(f1r2_files) from f1r2.groupTuple()
 
             output:
             set val(tumor_normal_tag), file("*model.tar.gz") into ROmodel
 
             shell:
+            input_f1r2=""
+            for( f1r2 in f1r2_files ){
+                input_f1r2=input_f1r2+" -I ${f1r2}"
+            }
             '''
-            gatk LearnReadOrientationModel -I !{f1r2} -O !{tumor_normal_tag}_read-orientation-model.tar.gz
+            gatk LearnReadOrientationModel !{input_f1r2} -O !{tumor_normal_tag}_read-orientation-model.tar.gz
             '''
-        }*/
+        }
+        res_merged_RO = res_merged.join(ROmodel)
+    }else{
+        res_merged_RO = res_merged.map{row -> [row[0], row[1], row[2] , null]}
+    }
 
 if(params.estimate_contamination){
 	process ContaminationEstimationPileup {
@@ -651,16 +665,16 @@ if(params.estimate_contamination){
 	    gatk --java-options "-Xmx!{params.mem}G" CalculateContamination -I !{pileupT} !{input_n} -O !{basename}_calculatecontamination.table
 	    '''
 	}
-   res_merged_contam = res_merged.join(contam)
+   res_merged_RO_contam = res_merged_RO.join(contam)
 }else{
-   res_merged_contam = res_merged.map{row -> [row[0], row[1], row[2] , null]}
+   res_merged_RO_contam = res_merged_RO.map{row -> [row[0], row[1], row[2] , row[3], null]}
 }
 
 process FilterMuTectOutputs {
     tag { tumor_normal_tag }
 
     input:
-    set val(tumor_normal_tag), file(vcf), file(stats), file(contam_tables) from res_merged_contam
+    set val(tumor_normal_tag), file(vcf), file(stats), file(ROmodel), file(contam_tables) from res_merged_RO_contam
     file fasta_ref
     file fasta_ref_fai
     file fasta_ref_gzi
@@ -672,14 +686,20 @@ process FilterMuTectOutputs {
     publishDir params.output_folder+'/intermediate_calls/filtered', mode: 'copy'
 
     shell:
+    RO=""
+    if(params.filter_readorientation){
+	for(model in ROmodel){
+		RO=RO+"--ob-priors ${model} "
+	}
+    }
     contam=""
     if(params.estimate_contamination){
 	for(contmp in contam_tables){
-		contam="--contamination-table ${contmp} "
+		contam=contam+"--contamination-table ${contmp} "
 	}
     }
     '''
-    gatk FilterMutectCalls -R !{fasta_ref} -V !{vcf} !{contam} -O !{tumor_normal_tag}_filtered.vcf
+    gatk FilterMutectCalls -R !{fasta_ref} -V !{vcf} !{contam} !{RO} -O !{tumor_normal_tag}_filtered.vcf
     '''
 }
 
