@@ -118,6 +118,12 @@ This shows details about optional and mandatory parameters provided by the user.
           
 The output_folder directory contains two subfolders: stats and intermediate_calls
 
+## FAQ
+### Why are some samples absent from the output vcfs when I run multi-sample calling?
+Outputs are based on the SM field of the BAM file; when multiple files have the same SM, only one is outputed.
+
+### Why are some samples present in the input file ignored?
+Check that the input is tab-separated. When parsing the input file, if a line is not tab separated, nextflow will ignore it without returning an error.
 
 ## Directed Acyclic Graph
 [![DAG](dag.png)](http://htmlpreview.github.io/?https://github.com/IARCbioinfo/mutect-nf/blob/dev/dag.html)
