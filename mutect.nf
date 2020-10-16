@@ -293,7 +293,7 @@ process RNAseq_preproc_fixMCNDN_fixMQ{
     set val(sample), val(preproc), file(bam), file(bai), file(bamN), file(baiN), file(vcf) from bams.bam2preproc
 
     output:
-    set val(sample), file("*_MCNDNfixed.bam"), file("*_MCNDNfixed.bai"), file(bamN), file(baiN), file(vcf) into bampreproc_mcndn
+    set val(sample), file("*_MCNDNfixed_rehead.bam"), file("*_MCNDNfixed_rehead.bai"), file(bamN), file(baiN), file(vcf) into bampreproc_mcndn
 
     shell:
     '''
@@ -301,7 +301,8 @@ process RNAseq_preproc_fixMCNDN_fixMQ{
     if [ -L "none" ]; then unlink none; unlink none.bai; touch none;touch none.bai; fi
     SM=`samtools view -H !{bam} | grep SM | head -1 | awk '{print $4}' | cut -c 4-`
     python !{baseDir}/bin/correctNDN.py !{bam} !{sample}_$SM"_MCNDNfixed.bam"
-    samtools index !{sample}_$SM"_MCNDNfixed.bam" !{sample}_$SM"_MCNDNfixed.bai"
+    samtools view -H !{sample}_$SM"_MCNDNfixed.bam" | sed -e "s/SM:"$SM"/SM:"$SM"_MCNDNfixed/" | samtools reheader - !{sample}_$SM"_MCNDNfixed.bam" > !{sample}_$SM"_MCNDNfixed_rehead.bam"
+    samtools index !{sample}_$SM"_MCNDNfixed_rehead.bam" !{sample}_$SM"_MCNDNfixed_rehead.bai"
     '''
 }
 
