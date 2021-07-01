@@ -1,4 +1,8 @@
 # mutect-nf
+## dev-adg branch
+Adding CRAM support.
+
+
 ## Mutect pipeline for somatic variant calling with Nextflow
 [![CircleCI](https://circleci.com/gh/IARCbioinfo/mutect-nf/tree/master.svg?style=svg)](https://circleci.com/gh/IARCbioinfo/mutect-nf/tree/master)
 [![Docker Hub](https://img.shields.io/badge/docker-ready-blue.svg)](https://hub.docker.com/r/iarcbioinfo/mutect-nf/)
