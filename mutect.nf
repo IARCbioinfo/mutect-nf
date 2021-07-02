@@ -39,6 +39,7 @@ params.estimate_contamination = null
 params.filter_readorientation = null
 params.genotype      = null
 params.ref_RNA       = "NO_REF_RNA_FILE"
+params.ext                      = "cram"
 
 params.help = null
 
@@ -131,6 +132,7 @@ log.info '-------------------------------------------------------------'
     log.info "genotype               = ${params.genotype}"
     log.info "ref                    = ${params.ref}"
     log.info "ref_RNA                = ${params.ref_RNA}"
+    log.info "ext                   = ${params.ext}"	
 }
 
 //load reference
@@ -138,6 +140,11 @@ fasta_ref      = file( params.ref )
 fasta_ref_fai  = file( params.ref+'.fai' )
 fasta_ref_gzi  = file( params.ref+'.gzi' )
 fasta_ref_dict = file( params.ref.replace(".fasta",".dict").replace(".fa",".dict") )
+
+
+ext_ind = ".crai"
+if(params.ext=="bam"){ ext_ind=".bai"}
+
 
 if(params.genotype){
     if(params.ref_RNA == "NO_REF_RNA_FILE"){
@@ -190,10 +197,10 @@ if (params.PON) {
 if (params.tn_file) {
     // FOR INPUT AS A TAB DELIMITED FILE
     pairs = Channel.fromPath(params.tn_file).splitCsv(header: true, sep: '\t', strip: true)
-                       .map{ row -> [ row.sample , file(row.tumor), file(row.tumor+'.bai'), file(row.normal), file(row.normal+'.bai') ] }
+                       .map{ row -> [ row.sample , file(row.tumor), file(row.tumor+ext_ind), file(row.normal), file(row.normal+ext_ind) ] }
 
 	pairs2 = Channel.fromPath(params.tn_file).splitCsv(header: true, sep: '\t', strip: true)
-                       .map{ row -> [ row.sample , file(row.tumor), file(row.tumor+'.bai'), file(row.normal), file(row.normal+'.bai') ] }
+                       .map{ row -> [ row.sample , file(row.tumor), file(row.tumor+ext_ind), file(row.normal), file(row.normal+ext_ind) ] }
 
     tn_bambai2 = pairs2.groupTuple(by: 0)
                               .map { row -> tuple(row[0] , row[1], row[2] , row[3][0] , row[4][0]  ) }
@@ -203,23 +210,24 @@ if (params.tn_file) {
 
     if(params.estimate_contamination){
 	    pairsT4cont = Channel.fromPath(params.tn_file).splitCsv(header: true, sep: '\t', strip: true)
-                       .map{ row -> [ row.sample , 'T' , file(row.tumor), file(row.tumor+'.bai') ] }
+                       .map{ row -> [ row.sample , 'T' , file(row.tumor), file(row.tumor+ext_ind) ] }
 	    pairsN4cont = Channel.fromPath(params.tn_file).splitCsv(header: true, sep: '\t', strip: true)
-                         .map{ row -> [ row.sample , 'N', file(row.normal), file(row.normal+'.bai') ] }
+                         .map{ row -> [ row.sample , 'N', file(row.normal), file(row.normal+ext_ind) ] }
 		       .unique()
 	    pairs4cont  = pairsT4cont.concat( pairsN4cont )
     }
 } else {
     // FOR INPUT AS TWO FOLDER
     // recovering of bam files
-    tumor_bams = Channel.fromPath( params.tumor_bam_folder+'/*'+params.suffix_tumor+'.bam' )
-              .ifEmpty { error "Cannot find any bam file in: ${params.tumor_bam_folder}" }
-              .map {  path -> [ path.name.replace("${params.suffix_tumor}.bam",""), path ] }
+	ext_ind
+    tumor_bams = Channel.fromPath( params.tumor_bam_folder+'/*'+params.suffix_tumor+'.'+params.ext )
+              .ifEmpty { error "Cannot find any bam/cram file in: ${params.tumor_bam_folder}" }
+              .map {  path -> [ path.name.replace("${params.suffix_tumor}."+params.ext,""), path ] }
 
     // recovering of bai files
-    tumor_bais = Channel.fromPath( params.tumor_bam_folder+'/*'+params.suffix_tumor+'.bam.bai' )
-              .ifEmpty { error "Cannot find any bai file in: ${params.tumor_bam_folder}" }
-              .map {  path -> [ path.name.replace("${params.suffix_tumor}.bam.bai",""), path ] }
+    tumor_bais = Channel.fromPath( params.tumor_bam_folder+'/*'+params.suffix_tumor+'.'+params.ext+ext_ind )
+              .ifEmpty { error "Cannot find any bai/crai file in: ${params.tumor_bam_folder}" }
+              .map {  path -> [ path.name.replace("${params.suffix_tumor}."+params.ext+ext_ind,""), path ] }
 
     // building bam-bai pairs
     tumor_bam_bai = tumor_bams
@@ -228,14 +236,14 @@ if (params.tn_file) {
 
     // FOR NORMAL
     // recovering of bam files
-    normal_bams = Channel.fromPath( params.normal_bam_folder+'/*'+params.suffix_normal+'.bam' )
-              .ifEmpty { error "Cannot find any bam file in: ${params.normal_bam_folder}" }
-              .map {  path -> [ path.name.replace("${params.suffix_normal}.bam",""), path ] }
+    normal_bams = Channel.fromPath( params.normal_bam_folder+'/*'+params.suffix_normal+'.'+params.ext )
+              .ifEmpty { error "Cannot find any bam/cram file in: ${params.normal_bam_folder}" }
+              .map {  path -> [ path.name.replace("${params.suffix_normal}."+params.ext,""), path ] }
 
     // recovering of bai files
-    normal_bais = Channel.fromPath( params.normal_bam_folder+'/*'+params.suffix_normal+'.bam.bai' )
-              .ifEmpty { error "Cannot find any bai file in: ${params.normal_bam_folder}" }
-              .map {  path -> [ path.name.replace("${params.suffix_normal}.bam.bai",""), path ] }
+    normal_bais = Channel.fromPath( params.normal_bam_folder+'/*'+params.suffix_normal+'.'+params.ext+ext_ind )
+              .ifEmpty { error "Cannot find any bai/crai file in: ${params.normal_bam_folder}" }
+              .map {  path -> [ path.name.replace("${params.suffix_normal}."+params.ext+ext_ind,""), path ] }
 
     // building bam-bai pairs
     normal_bam_bai = normal_bams
@@ -248,12 +256,12 @@ if (params.tn_file) {
 	      .map {tumor_bb, normal_bb -> [ tumor_bb[0], tumor_bb[1], tumor_bb[2], normal_bb[1], normal_bb[2] ] }
     // here each element X of tn_bambai channel is a 4-uplet. X[0] is the tumor bam, X[1] the tumor bai, X[2] the normal bam and X[3] the normal bai.
     if(params.estimate_contamination){
-	    pairsT4cont = Channel.fromPath( params.tumor_bam_folder+'/*'+params.suffix_tumor+'.bam' )
-                             .map {  path -> [ path.name.replace("${params.suffix_tumor}.bam",""), 'T',
-                             file(path), file(path + '.bai') ] }
-        pairsN4cont = Channel.fromPath( params.normal_bam_folder+'/*'+params.suffix_normal+'.bam' )
-                             .map {  path -> [ path.name.replace("${params.suffix_normal}.bam",""), 'N',
-                             file(path), file(path + '.bai') ] }
+	    pairsT4cont = Channel.fromPath( params.tumor_bam_folder+'/*'+params.suffix_tumor+'.'+params.ext )
+                             .map {  path -> [ path.name.replace("${params.suffix_tumor}."+params.ext,""), 'T',
+                             file(path), file(path +ext_ind) ] }
+        pairsN4cont = Channel.fromPath( params.normal_bam_folder+'/*'+params.suffix_normal+'.'+params.ext )
+                             .map {  path -> [ path.name.replace("${params.suffix_normal}."+params.ext,""), 'N',
+                             file(path), file(path +ext_ind ) ] }
 		                    .unique()
 	    pairs4cont  = pairsT4cont.concat( pairsN4cont )
     }
@@ -274,8 +282,8 @@ if (params.tn_file) {
 if(params.genotype){
     pairs2 = Channel.fromPath(params.tn_file).splitCsv(header: true, sep: '\t', strip: true)
                        .map{ row -> [ row.sample , row.preproc, file(row.tumor), 
-                       file(row.tumor+'.bai'), file(row.normal), 
-                       file(row.normal+'.bai'), file(row.vcf) ] }
+                       file(row.tumor+ext_ind), file(row.normal), 
+                       file(row.normal+ext_ind), file(row.vcf) ] }
 
     pairs2.branch{
                     bam2preproc: it[1]=="yes"
@@ -299,7 +307,7 @@ process RNAseq_preproc_fixMCNDN_fixMQ{
     '''
     if [ -L "None" ]; then unlink None; unlink None.bai; touch None;touch None.bai; fi
     if [ -L "none" ]; then unlink none; unlink none.bai; touch none;touch none.bai; fi
-    SM=`samtools view -H !{bam} | grep SM | head -1 | awk '{print $4}' | cut -c 4-`
+    SM=`samtools view -H !{bam} | grep "^@RG" | head -1 | awk '{print $4}' | cut -c 4-`
     python !{baseDir}/bin/correctNDN.py !{bam} !{sample}_$SM"_MCNDNfixed.bam"
     samtools view -H !{sample}_$SM"_MCNDNfixed.bam" | sed -e "s/SM:"$SM"/SM:"$SM"_MCNDNfixed/" | samtools reheader - !{sample}_$SM"_MCNDNfixed.bam" > !{sample}_$SM"_MCNDNfixed_rehead.bam"
     samtools index !{sample}_$SM"_MCNDNfixed_rehead.bam" !{sample}_$SM"_MCNDNfixed_rehead.bai"
@@ -323,7 +331,7 @@ process RNAseq_preproc_split{
     shell:
     new_tag = sample+"_MCNDNfixed_split"
     '''
-    SM=`samtools view -H !{bam} | grep SM | head -1 | awk '{print $4}' | cut -c 4-`
+    SM=`samtools view -H !{bam} | grep "^@RG" | head -1 | awk '{print $4}' | cut -c 4-`
     gatk SplitNCigarReads --java-options "-Xmx!{params.mem}G -Djava.io.tmpdir=$PWD" --add-output-sam-program-record  -fixNDN true -R !{fasta_ref_RNA} -I !{bam} -O !{new_tag}_$SM.bam
     '''
 }
@@ -376,7 +384,7 @@ process genotype{
     }
     '''
     !{baseDir}/bin/prep_vcf_bed.sh !{known_snp} !{PON}
-    normal_name=`samtools view -H !{bamN} | grep SM | head -1 | awk '{print $4}' | cut -c 4-`
+    normal_name=`samtools view -H !{bamN} | grep "^@RG" | head -1 | awk '{print $4}' | cut -c 4-`
     gatk IndexFeatureFile -I !{vcf}
     gatk Mutect2 --java-options "-Xmx!{params.mem}G" -R !{fasta_ref} !{known_snp_option} !{PON_option} !{input_t} !{input_n} \
     -O !{printed_tag}_genotyped.vcf !{params.mutect_args} --alleles !{vcf} -L regions.bed --disable-read-filter NonChimericOriginalAlignmentReadFilter --disable-read-filter NotDuplicateReadFilter \
@@ -488,7 +496,7 @@ process mutect {
         PON_option = ""
     }
     '''
-    normal_name=`samtools view -H !{bamN} | grep SM | head -1 | awk '{print $4}' | cut -c 4-`
+    normal_name=`samtools view -H !{bamN} | grep "^@RG" | head -1 | awk '{print $4}' | cut -c 4-`
     gatk Mutect2 --java-options "-Xmx!{params.mem}G" -R !{fasta_ref} !{known_snp_option} !{PON_option} \
     !{input_t} !{input_n} -O !{printed_tag}_calls.vcf -L !{bed} !{params.mutect_args} --f1r2-tar-gz !{printed_tag}_f1r2.tar.gz
     '''
