@@ -307,7 +307,7 @@ process RNAseq_preproc_fixMCNDN_fixMQ{
     '''
     if [ -L "None" ]; then unlink None; unlink None.bai; touch None;touch None.bai; fi
     if [ -L "none" ]; then unlink none; unlink none.bai; touch none;touch none.bai; fi
-    SM=`samtools view -H !{bam} | grep "^@RG" | head -1 | awk '{print $4}' | cut -c 4-`
+    SM=`samtools view -H !{bam} | grep "^@RG" | head -1 | awk '{print $NF}' | cut -c 4-`
     python !{baseDir}/bin/correctNDN.py !{bam} !{sample}_$SM"_MCNDNfixed.bam"
     samtools view -H !{sample}_$SM"_MCNDNfixed.bam" | sed -e "s/SM:"$SM"/SM:"$SM"_MCNDNfixed/" | samtools reheader - !{sample}_$SM"_MCNDNfixed.bam" > !{sample}_$SM"_MCNDNfixed_rehead.bam"
     samtools index !{sample}_$SM"_MCNDNfixed_rehead.bam" !{sample}_$SM"_MCNDNfixed_rehead.bai"
@@ -331,7 +331,7 @@ process RNAseq_preproc_split{
     shell:
     new_tag = sample+"_MCNDNfixed_split"
     '''
-    SM=`samtools view -H !{bam} | grep "^@RG" | head -1 | awk '{print $4}' | cut -c 4-`
+    SM=`samtools view -H !{bam} | grep "^@RG" | head -1 | awk '{print $NF}' | cut -c 4-`
     gatk SplitNCigarReads --java-options "-Xmx!{params.mem}G -Djava.io.tmpdir=$PWD" --add-output-sam-program-record  -fixNDN true -R !{fasta_ref_RNA} -I !{bam} -O !{new_tag}_$SM.bam
     '''
 }
@@ -384,7 +384,7 @@ process genotype{
     }
     '''
     !{baseDir}/bin/prep_vcf_bed.sh !{known_snp} !{PON}
-    normal_name=`samtools view -H !{bamN} | grep "^@RG" | head -1 | awk '{print $4}' | cut -c 4-`
+    normal_name=`samtools view -H !{bamN} | grep "^@RG" | head -1 | awk '{print $NF}' | cut -c 4-`
     gatk IndexFeatureFile -I !{vcf}
     gatk Mutect2 --java-options "-Xmx!{params.mem}G" -R !{fasta_ref} !{known_snp_option} !{PON_option} !{input_t} !{input_n} \
     -O !{printed_tag}_genotyped.vcf !{params.mutect_args} --alleles !{vcf} -L regions.bed --disable-read-filter NonChimericOriginalAlignmentReadFilter --disable-read-filter NotDuplicateReadFilter \
@@ -496,7 +496,7 @@ process mutect {
         PON_option = ""
     }
     '''
-    normal_name=`samtools view -H !{bamN} | grep "^@RG" | head -1 | awk '{print $4}' | cut -c 4-`
+    normal_name=`samtools view -H !{bamN} | grep "^@RG" | head -1 | awk '{print $NF}' | cut -c 4-`
     gatk Mutect2 --java-options "-Xmx!{params.mem}G" -R !{fasta_ref} !{known_snp_option} !{PON_option} \
     !{input_t} !{input_n} -O !{printed_tag}_calls.vcf -L !{bed} !{params.mutect_args} --f1r2-tar-gz !{printed_tag}_f1r2.tar.gz
     '''
