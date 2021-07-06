@@ -231,7 +231,7 @@ process mergeMuTectOutputs {
 }
 
 process create_Genomics_DB{
-
+  tag { "Build_PON" }
   publishDir params.output_folder+'/PON/', mode: 'copy'
   input:
   file(vcfs) from res_merged_vcfs.collect()
