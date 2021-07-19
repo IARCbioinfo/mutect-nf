@@ -1,6 +1,4 @@
 # mutect-nf
-## dev-adg branch
-Adding CRAM support.
 
 
 ## Mutect pipeline for somatic variant calling with Nextflow
