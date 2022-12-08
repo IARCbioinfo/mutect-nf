@@ -475,8 +475,8 @@ process mutect {
     file cosmic
 
     output:
-    set val(sample), file("${printed_tag}_*.vcf") into mutect_output1
-    set val(sample), file("${printed_tag}*stats*") into mutect_output2
+    set val(sample), file("*_calls.vcf") into mutect_output1
+    set val(sample), file("*_calls.vcf.stats") into mutect_output2
     set val(sample), file("*_f1r2.tar.gz") optional true into f1r2
 
     shell:
