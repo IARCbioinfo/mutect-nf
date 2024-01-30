@@ -549,7 +549,7 @@ process FilterMuTectOutputs {
 
 process FilterMuTectOutputsOnPass {
 
-    publishDir params.output_folder+'/intermediate_calls/pass', mode: 'copy'
+    publishDir params.output_folder, mode: 'copy'
 
     input:
         tuple val(tumor_normal_tag), path(vcf_filtered)
