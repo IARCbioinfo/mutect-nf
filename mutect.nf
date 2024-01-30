@@ -25,9 +25,8 @@ params.nsplit        = 1
 params.region        = null
 params.bed           = null
 params.java          = "java"
-params.known_snp     = null
+params.snp_vcf       = null
 params.snp_contam    = null
-params.cosmic        = "NO_COSMIC_FILE"
 params.tn_file       = null
 params.tumor_bam_folder  = null
 params.normal_bam_folder = null
@@ -74,16 +73,15 @@ log.info '-------------------------------------------------------------'
     log.info '    --region             REGION                  A region defining the calling, in the format CHR:START-END.'
     log.info '    NOTE: if neither --bed or --region, will perform the calling on whole genome, based on the faidx file.'
     log.info '    --nsplit             INTEGER                 Split the region for calling in nsplit pieces and run in parallel (default: 1).'
-    log.info '    --known_snp          FILE                    VCF file with known variants and frequency (e.g., from gnomad).'
-    log.info '    --snp_contam 		   FILE                    VCF file with known germline variants to genotype for contamination estimation'
+    log.info '    --snp_vcf            FILE                    VCF file with known variants and frequency (e.g., from gnomad).'
+    log.info '    --snp_contam 	       FILE                    VCF file with known germline variants to genotype for contamination estimation'
     log.info '                                                 (requires --estimate_contamination)'
-    log.info '    --PON 	           FILE                    VCF file of GATK panel of normals used to filter calls.'
-    log.info '    --cosmic             FILE                    Cosmic VCF file required by mutect (CAUTION: not a symbolic link); not in gatk4.'
+    log.info '    --PON                FILE                    VCF file of GATK panel of normals used to filter calls.'
     log.info '    --mutect_args        STRING                  Arguments you want to pass to mutect.'
     log.info '                                                 WARNING: form is " --force_alleles " with spaces between quotes.'
     log.info '    --suffix_tumor       STRING                  Suffix identifying tumor bam (default: "_T").'
     log.info '    --suffix_normal      STRING                  Suffix identifying normal bam (default: "_N").'
-    log.info '    --ref_RNA 		   PATH                    fasta reference for preprocessing RNA (required when preproc column contains yes'
+    log.info '    --ref_RNA 	       PATH                    fasta reference for preprocessing RNA (required when preproc column contains yes'
     log.info '                                                 in input tn_file).'
     log.info '    --cpu                INTEGER                 Number of cpu used (default: 4).'
     log.info '    --mem                INTEGER                 Java memory passed to mutect in GB (default: 8).'
@@ -91,7 +89,7 @@ log.info '-------------------------------------------------------------'
     log.info '    --java               PATH                    Name of the JAVA command  (default: java).'
     log.info ''
     log.info 'Flags:'
-    log.info '    --estimate_contamination 	                   Run extra step of estimating contamination and use results to filter calls; only for gatk4'
+    log.info '    --estimate_contamination 	               Run extra step of estimating contamination and use results to filter calls; only for gatk4'
     log.info '    --filter_readorientation                     Run extra step learning read orientation model and using it to filter reads.'
     log.info '    --genotype                                   Use genotyping from vcf mode instead of usual variant calling;'
     log.info '                                                 requires tn_file with vcf column and gatk4, and if RNA-seq included, requires preproc column'
@@ -109,9 +107,8 @@ log.info '-------------------------------------------------------------'
     log.info "region                 = ${params.region}"
     log.info "bed                    = ${params.bed}"
     log.info "java                   = ${params.java}"
-    log.info "known_snp              = ${params.known_snp}"
+    log.info "snp_vcf                = ${params.snp_vcf}"
     log.info "snp_contam             = ${params.snp_contam}"
-    log.info "cosmic                 = ${params.cosmic}"
     log.info "tn_file                = ${params.tn_file}"
     log.info "tumor_bam_folder       = ${params.tumor_bam_folder}"
     log.info "normal_bam_folder      = ${params.normal_bam_folder}"
@@ -143,15 +140,11 @@ ref_RNA = tuple file( params.ref_RNA ),
 ref_RNA = (params.ref_RNA == "NO_REF_RNA_FILE") ? ref : ref_RNA
 
 // know snp VCFs
-known_snp = params.known_snp ? (tuple file(params.known_snp), file(params.known_snp+".tbi")) : (tuple file("NO_SNP"), file("NO_SNP.tbi"))
-known_snp_option = params.known_snp ? "" : "--germline-resource ${known_snp.get(0)}"
+snp_vcf = params.snp_vcf ? (tuple file(params.snp_vcf), file(params.snp_vcf+".tbi")) : (tuple file("NO_SNP"), file("NO_SNP.tbi"))_snp_option = params.snp_vcf ? "" : "--germline-resource ${snp_vcf.get(0)}"
+snp_vcf_option = params.snp_vcf ? "" : "--germline-resource ${snp_vcf.get(0)}"
 
 // contamination VCFs
-snp_contam = params.snp_contam ? (tuple file(params.snp_contam), file(params.snp_contam+'.tbi')) : known_snp
-
-// cosmic
-cosmic = file(params.cosmic)
-cosmic_option = (params.cosmic == "NO_COSMIC_FILE") ? "" : "--cosmic ${cosmic}"
+snp_contam = params.snp_contam ? (tuple file(params.snp_contam), file(params.snp_contam+'.tbi')) : snp_vcf
 
 // Pannel Of Normal
 PON = params.PON ? (tuple file(params.PON), file(params.PON +'_TBI')) : (tuple file("NO_FILE"), file("NO_FILE_TBI"))
@@ -234,7 +227,7 @@ process genotype{
         tuple val(sample), path(bamT), path(baiT), path(bamN), path(baiN), path(vcf)
         tuple path(fasta_ref), path(fasta_ref_fai), path(fasta_ref_gzi), path(fasta_ref_dict)
         tuple path(PON), path(PON_tbi)
-        tuple path(known_snp), path(known_snp_tbi)
+        tuple path(snp_vcf), path(snp_vcf_tbi)
 
     output:
         tuple val(sample), path(vcf) , path("${sample}*.vcf"), emit : vcfs
@@ -245,10 +238,10 @@ process genotype{
         input_n = (bamN.baseName == 'None') ? "" : "-I ${bamN} -normal \$normal_name"
         //PON_option = params.PON ? "--panel-of-normals ${PON}" : ""
         """
-        ${baseDir}/bin/prep_vcf_bed.sh $known_snp $PON
+        ${baseDir}/bin/prep_vcf_bed.sh $snp_vcf $PON
         normal_name=`samtools view -H $bamN | grep "^@RG" | head -1 | awk '{print \$NF}' | cut -c 4-`
         gatk IndexFeatureFile -I $vcf
-        gatk Mutect2 --java-options "-Xmx${params.mem}G" -R $fasta_ref $known_snp_option $PON_option $input_t $input_n \
+        gatk Mutect2 --java-options "-Xmx${params.mem}G" -R $fasta_ref $snp_vcf_option $PON_option $input_t $input_n \
         -O ${sample}_genotyped.vcf $params.mutect_args --alleles $vcf -L regions.bed --disable-read-filter NonChimericOriginalAlignmentReadFilter --disable-read-filter NotDuplicateReadFilter \
         --disable-read-filter ReadLengthReadFilter --disable-read-filter WellformedReadFilter \
         --force-call-filtered-alleles --genotype-filtered-alleles --genotype-germline-sites --genotype-pon-sites --active-probability-threshold 0.000 --min-base-quality-score 0 --initial-tumor-lod -100000000000  --tumor-lod-to-emit \
@@ -367,8 +360,7 @@ process mutect {
         tuple val(sample), path(bamT), path(baiT), path(bamN), path(baiN), path(bed)
         tuple path(fasta_ref), path(fasta_ref_fai), path(fasta_ref_gzi), path(fasta_ref_dict)
         tuple path(PON), path(PON_tbi)
-        tuple path(known_snp), path(known_snp_tbi)
-        path(cosmic)
+        tuple path(snp_vcf), path(snp_vcf_tbi)
 
     output:
         tuple val(sample), path("${printed_tag}_*.vcf"), path("${printed_tag}*stats*"), emit : vcfs
@@ -383,7 +375,7 @@ process mutect {
         """
         normal_name=`samtools view -H $bamN | grep "^@RG" | head -1 | awk '{print \$NF}' | cut -c 4-`
         echo \$normal_name
-        gatk Mutect2 --java-options "-Xmx${params.mem}G" -R $fasta_ref $known_snp_option $PON_option \
+        gatk Mutect2 --java-options "-Xmx${params.mem}G" -R $fasta_ref $snp_vcf_option $PON_option \
         $input_t $input_n -O ${printed_tag}_calls.vcf -L $bed $params.mutect_args --f1r2-tar-gz ${printed_tag}_f1r2.tar.gz
         
         """
@@ -621,7 +613,7 @@ workflow {
         bamnopreproc = bams.nopreproc.map{ row -> tuple(row[0], row[2], row[3], row[4], row[5], row[6]) }
         
         bams = bamnopreproc.concat(bampreproc).groupTuple(by: 0).map { row -> tuple(row[0] , row[1], row[2] , row[3][0] , row[4][0] , row[5][0] ) }
-        genotype(bams,ref,PON,known_snp)
+        genotype(bams,ref,PON,snp_vcf)
         pass = CompressAndIndex(genotype.out.vcfs)
 
     } else{
@@ -629,7 +621,7 @@ workflow {
         // mutect
         bams = pairs.groupTuple(by: 0).map { row -> tuple(row[0] , row[2], row[3] , row[4][0] , row[5][0]  ) }
         bed = make_bed(fasta_ref_fai) | split_bed | flatten
-        mutect(bams.combine(bed),ref,PON,known_snp,cosmic)
+        mutect(bams.combine(bed),ref,PON,snp_vcf)
 
         
         mutectOutput = mergeMuTectOutputs(mutect.out.vcfs.groupTuple(size: params.nsplit ))
