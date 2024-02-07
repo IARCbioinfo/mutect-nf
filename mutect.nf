@@ -140,7 +140,7 @@ ref_RNA = tuple file( params.ref_RNA ),
 ref_RNA = (params.ref_RNA == "NO_REF_RNA_FILE") ? ref : ref_RNA
 
 // know snp VCFs
-snp_vcf = params.snp_vcf ? (tuple file(params.snp_vcf), file(params.snp_vcf+".tbi")) : (tuple file("NO_SNP"), file("NO_SNP.tbi"))_snp_option = params.snp_vcf ? "" : "--germline-resource ${snp_vcf.get(0)}"
+snp_vcf = params.snp_vcf ? (tuple file(params.snp_vcf), file(params.snp_vcf+".tbi")) : (tuple file("NO_SNP"), file("NO_SNP.tbi"))
 snp_vcf_option = params.snp_vcf ? "" : "--germline-resource ${snp_vcf.get(0)}"
 
 // contamination VCFs
@@ -371,13 +371,11 @@ process mutect {
         printed_tag = "${sample}_" + bed_tag
         input_t = "-I " + bamT.join(" -I ")
         input_n = (bamN.baseName == 'None') ? "" : "-I ${bamN} -normal \$normal_name"
-        //PON_option = params.PON ? "--panel-of-normals ${PON}" : ""
         """
         normal_name=`samtools view -H $bamN | grep "^@RG" | head -1 | awk '{print \$NF}' | cut -c 4-`
         echo \$normal_name
         gatk Mutect2 --java-options "-Xmx${params.mem}G" -R $fasta_ref $snp_vcf_option $PON_option \
         $input_t $input_n -O ${printed_tag}_calls.vcf -L $bed $params.mutect_args --f1r2-tar-gz ${printed_tag}_f1r2.tar.gz
-        
         """
 
     stub:
@@ -463,7 +461,7 @@ process ReadOrientationLearn {
 process ContaminationEstimationPileup {
 
     cpus '16'
-    memory '128 GB'
+    memory '164 GB'
 
 	input:
         tuple val(tumor_normal_tag), val(TN), path(bam), path(bai)
@@ -531,7 +529,7 @@ process FilterMuTectOutputs {
         tuple val(tumor_normal_tag), path("*filtered.vcf*")
 
     shell:
-        RO = "--ob-priors " + ROmodel.join(" --ob-priors ")
+        RO = (ROmodel.baseName=="NO_ROmodel") ? "": "--ob-priors " + ROmodel.join(" --ob-priors ")
         contam = (contam_tables.baseName == "NO_contam") ? "" : "--contamination-table " + contam_tables.join(" --contamination-table ")
         """
         gatk FilterMutectCalls -R $fasta_ref -V $vcf $contam $RO -O ${tumor_normal_tag}_filtered.vcf
