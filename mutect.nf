@@ -22,16 +22,12 @@ params.cpu           = 4
 params.output_folder = "mutect_results"
 params.mutect_args   = ""
 params.nsplit        = 1
-params.region        = null
 params.bed           = null
 params.java          = "java"
 params.snp_vcf       = null
 params.snp_contam    = null
 params.tn_file       = null
-params.tumor_bam_folder  = null
-params.normal_bam_folder = null
 params.PON           = null
-params.estimate_contamination = null
 params.filter_readorientation = null
 params.genotype      = null
 params.ref_RNA       = "NO_REF_RNA_FILE"
@@ -58,9 +54,6 @@ log.info '-------------------------------------------------------------'
     log.info 'nextflow run mutect.nf --tumor_bam_folder tumor_BAM/ --normal_bam_folder normal_BAM/ --ref ref.fasta [OPTIONS] '
     log.info ''
     log.info 'Mandatory arguments:'
-    log.info '    --tumor_bam_folder   FOLDER                  Folder containing tumor BAM files to be called.'
-    log.info '    --normal_bam_folder  FOLDER                  Folder containing matched normal BAM files.'
-    log.info '    OR'
     log.info '    --tn_file            FILE                    input tabulation-separated values file with columns sample (sample name),'
     log.info '                                                 tumor (full path to tumor bam), normal (full path to matched normal bam);'
     log.info '                                                 optionally (for --genotype mode), columns preproc (is the bam RNAseq needing'
@@ -69,18 +62,14 @@ log.info '-------------------------------------------------------------'
     log.info '    --ref                FILE (with indexes)     Reference fasta file.'
     log.info ''
     log.info 'Optional arguments:'
-    log.info '    --bed                FILE                    Bed file containing intervals.'
-    log.info '    --region             REGION                  A region defining the calling, in the format CHR:START-END.'
-    log.info '    NOTE: if neither --bed or --region, will perform the calling on whole genome, based on the faidx file.'
+    log.info '    --bed                FILE                    Bed or region file containing intervals.'
+    log.info '    NOTE: if neither bed or region file is provided, will perform the calling on whole genome, based on the faidx file.'
     log.info '    --nsplit             INTEGER                 Split the region for calling in nsplit pieces and run in parallel (default: 1).'
     log.info '    --snp_vcf            FILE                    VCF file with known variants and frequency (e.g., from gnomad).'
     log.info '    --snp_contam 	       FILE                    VCF file with known germline variants to genotype for contamination estimation'
-    log.info '                                                 (requires --estimate_contamination)'
     log.info '    --PON                FILE                    VCF file of GATK panel of normals used to filter calls.'
     log.info '    --mutect_args        STRING                  Arguments you want to pass to mutect.'
     log.info '                                                 WARNING: form is " --force_alleles " with spaces between quotes.'
-    log.info '    --suffix_tumor       STRING                  Suffix identifying tumor bam (default: "_T").'
-    log.info '    --suffix_normal      STRING                  Suffix identifying normal bam (default: "_N").'
     log.info '    --ref_RNA 	       PATH                    fasta reference for preprocessing RNA (required when preproc column contains yes'
     log.info '                                                 in input tn_file).'
     log.info '    --cpu                INTEGER                 Number of cpu used (default: 4).'
@@ -89,7 +78,6 @@ log.info '-------------------------------------------------------------'
     log.info '    --java               PATH                    Name of the JAVA command  (default: java).'
     log.info ''
     log.info 'Flags:'
-    log.info '    --estimate_contamination 	               Run extra step of estimating contamination and use results to filter calls; only for gatk4'
     log.info '    --filter_readorientation                     Run extra step learning read orientation model and using it to filter reads.'
     log.info '    --genotype                                   Use genotyping from vcf mode instead of usual variant calling;'
     log.info '                                                 requires tn_file with vcf column and gatk4, and if RNA-seq included, requires preproc column'
@@ -97,23 +85,17 @@ log.info '-------------------------------------------------------------'
     exit 0
 }else{
     /* Software information */
-    log.info "suffix_tumor           = ${params.suffix_tumor}"
-    log.info "suffix_normal          = ${params.suffix_normal}"
     log.info "mem                    = ${params.mem}"
     log.info "cpu                    = ${params.cpu}"
     log.info "output_folder          = ${params.output_folder}"
     log.info "mutect_args            = ${params.mutect_args}"
     log.info "nsplit                 = ${params.nsplit}"
-    log.info "region                 = ${params.region}"
     log.info "bed                    = ${params.bed}"
     log.info "java                   = ${params.java}"
     log.info "snp_vcf                = ${params.snp_vcf}"
     log.info "snp_contam             = ${params.snp_contam}"
     log.info "tn_file                = ${params.tn_file}"
-    log.info "tumor_bam_folder       = ${params.tumor_bam_folder}"
-    log.info "normal_bam_folder      = ${params.normal_bam_folder}"
     log.info "PON                    = ${params.PON}"
-    log.info "estimate_contamination = ${params.estimate_contamination}"
     log.info "filter_readorientation = ${params.filter_readorientation}"
     log.info "genotype               = ${params.genotype}"
     log.info "ref                    = ${params.ref}"
@@ -144,6 +126,7 @@ snp_vcf = params.snp_vcf ? (tuple file(params.snp_vcf), file(params.snp_vcf+".tb
 snp_vcf_option = params.snp_vcf ? "" : "--germline-resource ${snp_vcf.get(0)}"
 
 // contamination VCFs
+estimate_contamination = params.snp_contam ? true : false
 snp_contam = params.snp_contam ? (tuple file(params.snp_contam), file(params.snp_contam+'.tbi')) : snp_vcf
 
 // Pannel Of Normal
@@ -151,7 +134,7 @@ PON = params.PON ? (tuple file(params.PON), file(params.PON +'_TBI')) : (tuple f
 PON_option = params.PON ? "--panel-of-normals ${PON.get(0)}" : ""
 
 // manage input positions to call (bed or region or whole-genome)
-input_region = params.region ? 'region' : params.bed ? 'bed' : 'whole_genome'
+intervals = params.bed ? params.bed : 'whole_genome'
 
 
 /***************************************************************************************/
@@ -299,25 +282,25 @@ process make_bed {
         file "temp.bed"
 
     shell:
-        //if (input_region == 'region'){
-        //"""
-        //echo $params.region | sed -e 's/[:|-]/	/g' > temp.bed
-        //"""
-        
-        //}else if (input_region == 'bed'){
+        if (intervals =~ /^[0-9a-zA-Z]+:[0-9]+-[0-9]+/){
         """
-        ln -s $params.bed temp.bed
+        echo $intervals | sed -e 's/[:|-]/	/g' > temp.bed
+        """
+        
+        }else if( intervals =~ /^[0-9a-zA-Z]+\t[0-9]+\t[0-9]+/)
+        """
+        ln -s $intervals temp.bed
         """
 
-        //}else if (input_region == 'whole_genome'){
-        //"""
-        //cat $fasta_ref_fai | awk '{print \$1"	"0"	"\$2 }' | grep -v -P "alt|random|Un|chrEBV|HLA" > temp.bed
-        //"""
-        //}
+        }else{
+        """
+        cat $fasta_ref_fai | awk '{print \$1"	"0"	"\$2 }' | grep -v -P "alt|random|Un|chrEBV|HLA" > temp.bed
+        """
+        }
 
     stub:
         """
-        ln -s $params.bed temp.bed
+        touch temp.bed
         """
   }
 
@@ -595,7 +578,7 @@ workflow {
     
 
     // contamination
-    if(params.estimate_contamination){
+    if(estimate_contamination){
         pairsT4cont = pairs.map{ row -> tuple( row[0] , 'T' , row[2], row[3] )}
         pairsN4cont = pairs.map{ row -> tuple( row[0] , 'N' , row[4], row[5] )}.unique()
         pairs4cont  = pairsT4cont.concat( pairsN4cont )
@@ -633,7 +616,7 @@ workflow {
         }
 
         // contamination
-        if(params.estimate_contamination){
+        if(estimate_contamination){
             pileups4cont  = ContaminationEstimationPileup(pairs4cont,ref,snp_contam)
                 .groupTuple(by:[0,1]).groupTuple()
                 .map{ group -> tuple( group[0], group[2][0], group[2][1] )}
