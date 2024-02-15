@@ -71,13 +71,13 @@ If no file is provided, the calling will be performed on whole genome, based on 
 |--PON         |   | path to panel of normal VCF file used to filter calls |
 |--mutect_args |   | Arguments you want to pass to mutect. WARNING: form is " --force_alleles " with spaces between quotes |
 
-## filter readorientation
+## Filter readorientation
 
 | Name                    | Description |
 |-------------------------|-------------| 
 |--filter_readorientation | Run extra step learning read orientation model and using it to filter reads |
 
-## estimate contamination
+## Estimate contamination
 When a list of known snps is provided, run extra step of estimating contamination by normal and using the results to filter calls. We recommend the file [small_exac_common_3.hg38.vcf.gz](https://console.cloud.google.com/storage/browser/_details/gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz) from the best practices broad institute bundle.
 
 | Name         | Default value | Description |
