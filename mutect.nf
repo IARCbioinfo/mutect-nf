@@ -287,7 +287,7 @@ process make_bed {
         echo $intervals | sed -e 's/[:|-]/	/g' > temp.bed
         """
         
-        }else if( intervals =~ /^[0-9a-zA-Z]+\t[0-9]+\t[0-9]+/)
+        }else if( intervals =~ /^[0-9a-zA-Z]+\t[0-9]+\t[0-9]+/){
         """
         ln -s $intervals temp.bed
         """
