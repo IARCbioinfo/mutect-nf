@@ -126,12 +126,14 @@ snp_vcf = params.snp_vcf ? (tuple file(params.snp_vcf), file(params.snp_vcf+".tb
 snp_vcf_option = params.snp_vcf ? "" : "--germline-resource ${snp_vcf.get(0)}"
 
 // contamination VCFs
-estimate_contamination = params.snp_contam ? true : false
-snp_contam = params.snp_contam ? (tuple file(params.snp_contam), file(params.snp_contam+'.tbi')) : snp_vcf
+snp_contam = ((params.snp_contam) && (!params.snp_contam=="null")) ? (tuple file(params.snp_contam), file(params.snp_contam+'.tbi')) : null
+estimate_contamination = snp_contam ? true : false
+log.info "snp_contam = ${snp_contam}"
+
 
 // Pannel Of Normal
-PON = params.PON ? (tuple file(params.PON), file(params.PON +'_TBI')) : (tuple file("NO_FILE"), file("NO_FILE_TBI"))
-PON_option = params.PON ? "--panel-of-normals ${PON.get(0)}" : ""
+PON = ((params.PON) && (!params.PON=="null")) ? (tuple file(params.PON), file(params.PON +'_TBI')) : (tuple file("NO_FILE"), file("NO_FILE_TBI"))
+PON_option = ((params.PON) && (!params.PON=="null")) ? "--panel-of-normals ${PON.get(0)}" : ""
 
 // manage input positions to call (bed or region or whole-genome)
 intervals = params.bed ? params.bed : 'whole_genome'
