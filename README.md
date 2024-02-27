@@ -98,15 +98,15 @@ The output_folder directory contains two subfolders: stats and intermediate_call
 | intermediate_calls/raw_calls/sample.vcf | unfiltered VCF files |
 
 ## Usage
-To run the pipeline on a series of matched tumor normal files described in a tabular input file (--tn_pair), a reference genome with indexes *ref*, and a bed file ref.bed, one can type:
+To run the pipeline on a series of matched tumor normal files described in a tabular input file (--tn_file), a reference genome with indexes *ref*, and a bed file ref.bed, one can type:
 ```bash
-nextflow run IARCbioinfo/mutect-nf -r DSL2 -profile singularity  --tn_pair pair.tsv --ref ref_genome.fa --bed ref.bed
+nextflow run IARCbioinfo/mutect-nf -r DSL2 -profile singularity  --tn_file pair.tsv --ref ref_genome.fa --bed ref.bed
 ``` 
 To run the pipeline without singularity just remove "-profile singularity". Alternatively, one can run the pipeline using a docker container (-profile docker), apptainer (-profile apptainer) or the conda receipe containing all required dependencies (-profile conda).
 
 To follow GATK best practices, use --PON --filter_readorientation and --snp_contam
 ```bash
-nextflow run IARCbioinfo/mutect-nf -r DSL2 -profile singularity  --tn_pair pair.tsv --ref ref_genome.fa --bed ref.bed --PON pon.vcf.gz --filter_readorientation --snp_contam contam.vcf.gz
+nextflow run IARCbioinfo/mutect-nf -r DSL2 -profile singularity  --tn_file pair.tsv --ref ref_genome.fa --bed ref.bed --PON pon.vcf.gz --filter_readorientation --snp_contam contam.vcf.gz
 ``` 
 
 ### Genotypages
