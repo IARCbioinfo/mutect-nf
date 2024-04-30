@@ -385,7 +385,7 @@ process genotype{
     '''
     !{baseDir}/bin/prep_vcf_bed.sh !{known_snp} !{PON}
     normal_name=\$(samtools view -H !{bamN}|grep '^@RG'|sed 's/.*SM:\\([^\\t]*\\).*/\\1/g'|uniq)
-    
+    echo "${normal_name}" 
     gatk IndexFeatureFile -I !{vcf}
     gatk Mutect2 --java-options "-Xmx!{params.mem}G" -R !{fasta_ref} !{known_snp_option} !{PON_option} !{input_t} !{input_n} \
     -O !{printed_tag}_genotyped.vcf !{params.mutect_args} --alleles !{vcf} -L regions.bed --disable-read-filter NonChimericOriginalAlignmentReadFilter --disable-read-filter NotDuplicateReadFilter \
@@ -503,6 +503,7 @@ process mutect {
     '''
 
     normal_name=\$(samtools view -H !{bamN}|grep '^@RG'|sed 's/.*SM:\\([^\\t]*\\).*/\\1/g'|uniq)
+    echo "${normal_name}"
     gatk Mutect2 --java-options "-Xmx!{params.mem}G" -R !{fasta_ref} !{known_snp_option} !{PON_option} \
     !{input_t} !{input_n} -O !{printed_tag}_calls.vcf -L !{bed} !{params.mutect_args} --f1r2-tar-gz !{printed_tag}_f1r2.tar.gz
     '''
