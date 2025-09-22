@@ -389,7 +389,6 @@ process mergeMuTectOutputs {
         tuple val(tumor_normal_tag), path("${tumor_normal_tag}_calls.vcf"), path("${tumor_normal_tag}_calls.vcf.stats")
 
     shell:
-        input_stats = "-stats " + txt_files.join(" -stats ")
         """
         # MERGE VCF FILES
         sed '/^#CHROM/q' `ls -1 *.vcf | head -1` > header.txt
@@ -403,8 +402,17 @@ process mergeMuTectOutputs {
         # Rename the merged file
         mv header.txt ${tumor_normal_tag}_calls.vcf
 
+
         # MERGE STAT FILES
-        gatk MergeMutectStats $input_stats -O ${tumor_normal_tag}_calls.vcf.stats
+
+        # Build stats argument dynamically in bash
+        input_stats=""
+            for f in *stats; do
+        input_stats="\$input_stats -stats \$f"
+        done
+
+        # Concatenate STAT files
+        gatk MergeMutectStats \$input_stats -O ${tumor_normal_tag}_calls.vcf.stats
         """
 
     stub:
@@ -428,9 +436,13 @@ process ReadOrientationLearn {
         tuple val(tumor_normal_tag), path("*model.tar.gz")
 
     shell:
-        input_f1r2 = "-I " + f1r2_files.join(" -I ")
         """
-        gatk LearnReadOrientationModel ${input_f1r2} -O ${tumor_normal_tag}_read-orientation-model.tar.gz
+        # Build input_f1r2 argument dynamically in bash
+        input_f1r2=""
+        for f in *_f1r2.tar.gz; do
+            input_f1r2="\$input_f1r2 -I \$f"
+        done
+        gatk LearnReadOrientationModel \${input_f1r2} -O ${tumor_normal_tag}_read-orientation-model.tar.gz
         """
     
     stub:
